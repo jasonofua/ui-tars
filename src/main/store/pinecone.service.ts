@@ -1,5 +1,5 @@
 import { Pinecone } from '@pinecone-database/pinecone';
-import axios from 'axios';
+import OpenAI from 'openai';
 import { PineconeRecord, PineconeConfig } from './pinecone.types';
 import { logger } from '@main/logger';
 
@@ -8,8 +8,13 @@ export class PineconeService {
     private client: Pinecone | null = null;
     private config: PineconeConfig | null = null;
     private index: any = null;
+    private openai: OpenAI;
 
-    private constructor() { }
+    private constructor() {
+        this.openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY
+        });
+    }
 
     static getInstance(): PineconeService {
         if (!PineconeService.instance) {
@@ -36,32 +41,16 @@ export class PineconeService {
 
     private async generateEmbedding(text: string): Promise<number[]> {
         try {
-            const response = await axios.post(
-                process.env.VLM_BASE_URL as string,
-                {
-                    inputs: text,
-                    parameters: {
-                        truncate: true
-                    }
-                },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${process.env.VLM_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
+            const response = await this.openai.embeddings.create({
+                model: "text-embedding-3-small",
+                input: text,
+                encoding_format: "float"
+            });
 
-            logger.info('Embedding response:', response.data);
-
-            return response.data;
+            logger.info('Generated embedding with dimensions:', response.data[0].embedding.length);
+            return response.data[0].embedding;
         } catch (error) {
-            logger.error('Failed to generate embedding:', error);
-            if (axios.isAxiosError(error)) {
-                logger.error('Response data:', error.response?.data);
-                logger.error('Request URL:', error.config?.url);
-                logger.error('Request payload:', error.config?.data);
-            }
+            logger.error('Failed to generate OpenAI embedding:', error);
             throw error;
         }
     }
@@ -106,6 +95,20 @@ export class PineconeService {
             return results;
         } catch (error) {
             logger.error('Failed to search Pinecone:', error);
+            throw error;
+        }
+    }
+
+    async deleteRecord(id: string): Promise<void> {
+        if (!this.client || !this.config || !this.index) {
+            throw new Error('Pinecone client not initialized');
+        }
+
+        try {
+            await this.index.deleteOne(id);
+            logger.info(`Successfully deleted record ${id} from Pinecone`);
+        } catch (error) {
+            logger.error('Failed to delete record from Pinecone:', error);
             throw error;
         }
     }
