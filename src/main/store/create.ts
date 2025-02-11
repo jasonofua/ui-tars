@@ -20,6 +20,8 @@ import { closeScreenMarker } from './ScreenMarker';
 import { runAgent } from './runAgent';
 import { SettingStore } from './setting';
 import { AppState } from './types';
+import { PineconeService } from './pinecone.service';
+import { logger } from '@main/logger';
 
 export const store = createStore<AppState>(
   (set, get) =>
@@ -106,6 +108,27 @@ export const store = createStore<AppState>(
       SET_MESSAGES: (messages: Conversation[]) => set({ messages }),
       CLEAR_HISTORY: () => {
         set({ status: StatusEnum.END, messages: [], thinking: false });
+      },
+      ADD_PINECONE_RECORD: async (record) => {
+        try {
+          const settings = SettingStore.getStore();
+          if (!settings.pineconeApiKey || !settings.pineconeEnvironment || !settings.pineconeIndex) {
+            throw new Error('Pinecone configuration is incomplete');
+          }
+
+          const pineconeService = PineconeService.getInstance();
+          await pineconeService.initialize({
+            apiKey: settings.pineconeApiKey,
+            environment: settings.pineconeEnvironment,
+            indexName: settings.pineconeIndex,
+          });
+
+          await pineconeService.addRecord(record);
+          return true;
+        } catch (error) {
+          logger.error('Failed to add record to Pinecone:', error);
+          throw error;
+        }
       },
     }) satisfies AppState,
 );

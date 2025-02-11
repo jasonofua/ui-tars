@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { ComputerUseUserData, Conversation } from '@ui-tars/shared/types/data';
+import { PineconeRecord } from './pinecone.types'; // Create this file if needed
 
 import { SettingStore } from './setting';
 
@@ -48,6 +49,7 @@ export type AppState = {
   SET_INSTRUCTIONS: (instructions: string) => void;
   SET_MESSAGES: (messages: Conversation[]) => void;
   CLEAR_HISTORY: () => void;
+  ADD_PINECONE_RECORD: (record: PineconeRecord) => void;
 };
 
 export enum VlmProvider {
@@ -56,11 +58,15 @@ export enum VlmProvider {
   vLLM = 'vLLM',
 }
 
-export type LocalStore = {
-  language: 'zh' | 'en';
+export interface LocalStore {
+  language: string;
   vlmProvider: VlmProvider;
   vlmBaseUrl: string;
   vlmApiKey: string;
   vlmModelName: string;
   screenshotScale: number; // 0.1 ~ 1.0
-};
+  pineconeApiKey?: string;
+  pineconeEnvironment?: string;
+  pineconeIndex?: string;
+  debugMode?: 'enabled' | 'disabled';
+}

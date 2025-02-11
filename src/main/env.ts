@@ -44,3 +44,7 @@ const detectingWindows11 = () => {
 };
 
 export const isWindows11 = detectingWindows11();
+
+export const pineconeApiKey = process.env.PINECONE_API_KEY;
+export const pineconeEnvironment = process.env.PINECONE_ENVIRONMENT;
+export const pineconeIndex = process.env.PINECONE_INDEX;

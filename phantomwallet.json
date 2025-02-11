@@ -1,0 +1,23 @@
+{
+    "id": "phantom-wallet-creation",
+    "name": "Create Phantom Wallet",
+    "description": "Instructions for creating a new Phantom wallet from scratch",
+    "tags": [
+        "wallet",
+        "phantom",
+        "crypto",
+        "setup"
+    ],
+    "instructions": [
+        "Open chrome browser",
+        "Visit Chrome web store. You can visit https://chromewebstore.google.com/",
+        "In the search bar at the top of the chrome web store search phantom wallet",
+        "Select phantom wallet extension. To do that click on phantom.app",
+        "Click on add to chrome",
+        "Click 'Create a new wallet' button",
+        "Click create a seed phrase wallet",
+        "Write P@ssw0rd123 into Password input field and Confirm Password input field",
+        "Ask the user to reveal the phrases",
+        "Hit the extensions button and pin the extension"
+    ]
+}

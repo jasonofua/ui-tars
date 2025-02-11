@@ -17,6 +17,10 @@ export class SettingStore {
       vlmBaseUrl: env.vlmBaseUrl || '',
       vlmApiKey: env.vlmApiKey || '',
       vlmModelName: env.vlmModelName || '',
+      screenshotScale: 1.0,
+      pineconeApiKey: env.pineconeApiKey || '',
+      pineconeEnvironment: env.pineconeEnvironment || '',
+      pineconeIndex: env.pineconeIndex || '',
     },
   });
 
