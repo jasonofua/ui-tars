@@ -130,6 +130,48 @@ export const store = createStore<AppState>(
           throw error;
         }
       },
+      UPDATE_PINECONE_RECORD: async (record) => {
+        try {
+          const settings = SettingStore.getStore();
+          if (!settings.pineconeApiKey || !settings.pineconeEnvironment || !settings.pineconeIndex) {
+            throw new Error('Pinecone configuration is incomplete');
+          }
+
+          const pineconeService = PineconeService.getInstance();
+          await pineconeService.initialize({
+            apiKey: settings.pineconeApiKey,
+            environment: settings.pineconeEnvironment,
+            indexName: settings.pineconeIndex,
+          });
+
+          await pineconeService.updateRecord(record);
+          return true;
+        } catch (error) {
+          logger.error('Failed to update record in Pinecone:', error);
+          throw error;
+        }
+      },
+      GET_PINECONE_RECORD: async (id) => {
+        try {
+          const settings = SettingStore.getStore();
+          if (!settings.pineconeApiKey || !settings.pineconeEnvironment || !settings.pineconeIndex) {
+            throw new Error('Pinecone configuration is incomplete');
+          }
+
+          const pineconeService = PineconeService.getInstance();
+          await pineconeService.initialize({
+            apiKey: settings.pineconeApiKey,
+            environment: settings.pineconeEnvironment,
+            indexName: settings.pineconeIndex,
+          });
+
+          const record = await pineconeService.getRecord(id);
+          return record;
+        } catch (error) {
+          logger.error('Failed to get record from Pinecone:', error);
+          throw error;
+        }
+      },
     }) satisfies AppState,
 );
 

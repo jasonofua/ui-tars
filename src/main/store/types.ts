@@ -50,6 +50,8 @@ export type AppState = {
   SET_MESSAGES: (messages: Conversation[]) => void;
   CLEAR_HISTORY: () => void;
   ADD_PINECONE_RECORD: (record: PineconeRecord) => void;
+  UPDATE_PINECONE_RECORD: (record: PineconeRecord) => void;
+  GET_PINECONE_RECORD: (id: string) => Promise<PineconeRecord | null>;
 };
 
 export enum VlmProvider {

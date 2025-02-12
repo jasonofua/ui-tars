@@ -8,7 +8,7 @@ import { ChatCompletionMessageParam, ChatCompletionSystemMessageParam, ChatCompl
 import { logger } from '@main/logger';
 
 import { VlmRequestOptions, VlmResponse } from './base';
-import { KnowledgeBaseStore } from '@main/store/knowledgeBase';
+import { knowledgeBase } from '@main/store/knowledgeBase';
 
 // Keep VlmRequestOptions and VlmResponse types
 
@@ -19,7 +19,7 @@ export interface GPT4oReasoningOptions {
 
 export class GPT4oReasoning {
   private openai: OpenAI;
-  private knowledgeBase: KnowledgeBaseStore;
+  private knowledgeBase = knowledgeBase;
   private readonly defaultModel = 'gpt-4o';
 
   constructor() {
@@ -32,14 +32,96 @@ export class GPT4oReasoning {
 
     this.openai = new OpenAI({
       apiKey,
-      baseURL: 'https://api.openai.com/v1', // Explicitly set base URL
+      baseURL: 'https://api.openai.com/v1',
     });
-    this.knowledgeBase = KnowledgeBaseStore.getInstance();
   }
 
   get vlmModel() {
     // Return default model if environment variable is not set
     return process.env.REASONING_MODEL || this.defaultModel;
+  }
+
+  private async getInstructionPrompt(query: string): Promise<string> {
+    try {
+      const instructions = await this.knowledgeBase.getInstructions(query);
+
+      if (instructions) {
+        return `You are an advanced AI assistant that helps users accomplish computer tasks through careful reasoning and precise instructions.
+
+I have found a relevant task in my knowledge base that we can learn from:
+
+${instructions.join('\n')}
+
+First, analyze if this is:
+1. An exact match for what the user wants
+2. A similar task that needs adaptation
+3. A different task but with useful patterns
+
+Then, based on your analysis:
+- For exact matches: Use these instructions precisely
+- For similar tasks: Adapt while keeping the core steps and technical details
+- For different tasks: Use the structure as inspiration
+
+Your response must be:
+- A list of clear, executable instructions
+- One specific action per line
+- Include exact UI elements, URLs, and values
+- No explanations or step numbers
+- No additional commentary
+
+Remember: Focus on accuracy and practicality. Each step should be something a computer can execute.`;
+      } else {
+        return `You are an advanced AI assistant that helps users accomplish computer tasks through careful reasoning and precise instructions.
+
+Analyze the user's request and:
+1. Break down the task into basic operations
+2. Consider the most reliable way to accomplish each step
+3. Ensure each step is clear and executable
+
+Provide your response as:
+- A list of clear, executable instructions
+- One specific action per line
+- Include exact UI elements, URLs, and values
+- No explanations or step numbers
+- No additional commentary
+
+Example format:
+Open Chrome browser
+Navigate to https://example.com
+Click "Sign Up" button
+Type "username@email.com" in Email field
+Click "Continue" button
+
+Remember: Focus on accuracy and practicality. Each step should be something a computer can execute.`;
+      }
+    } catch (error) {
+      logger.error('Failed to get instructions:', error);
+      throw error;
+    }
+  }
+
+  private async retryWithExponentialBackoff<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    initialDelay: number = 1000
+  ): Promise<T> {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        if (i === maxRetries - 1) throw error; // Last attempt, throw the error
+
+        if (error?.status === 503) {
+          const delay = initialDelay * Math.pow(2, i);
+          logger.info(`Retrying after ${delay}ms due to 503 error`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+
+        throw error; // For other errors, throw immediately
+      }
+    }
+    throw new Error('Max retries reached');
   }
 
   async invoke(
@@ -50,16 +132,16 @@ export class GPT4oReasoning {
     const startTime = Date.now();
 
     try {
-      // Get the last message from conversations
       const userMessage = conversations[conversations.length - 1].value;
       if (!userMessage) {
         throw new Error('No user message found');
       }
 
-      // Properly typed messages
+      const systemPrompt = await this.getInstructionPrompt(userMessage);
+
       const systemMessage: ChatCompletionSystemMessageParam = {
         role: 'system',
-        content: this.getInstructionPrompt(userMessage)
+        content: systemPrompt
       };
 
       const userMessageParam: ChatCompletionUserMessageParam = {
@@ -78,11 +160,14 @@ export class GPT4oReasoning {
         firstFewWords: userMessage.slice(0, 50)
       });
 
-      const result = await this.openai.chat.completions.create({
-        model: this.vlmModel,
-        messages,
-        temperature: 0.7,
-        max_tokens: 1000
+      // Wrap the OpenAI call in the retry mechanism
+      const result = await this.retryWithExponentialBackoff(async () => {
+        return await this.openai.chat.completions.create({
+          model: this.vlmModel,
+          messages,
+          temperature: 0.7,
+          max_tokens: 1000
+        });
       });
 
       if (!result.choices[0]?.message?.content) {
@@ -103,36 +188,5 @@ export class GPT4oReasoning {
       });
       throw error;
     }
-  }
-
-  private getInstructionPrompt(query: string): string {
-    const knowledgeBaseMatch = this.knowledgeBase.getInstructions(query);
-
-    return `You are an AI assistant that generates step-by-step instructions for computer tasks.
-${knowledgeBaseMatch ? `
-I have a reference instruction set that you should follow VERY closely:
-
-${knowledgeBaseMatch.instructions.join('\n')}
-
-IMPORTANT GUIDELINES:
-1. Follow the SAME STRUCTURE as the reference instructions
-2. Use the SAME TECHNICAL STEPS in the same order
-3. Keep all URLs, button names, and specific values EXACTLY the same
-4. Maintain the same level of detail for each step
-5. Keep all critical information like passwords, addresses, and technical terms identical
-6. You may rephrase slightly but preserve the technical accuracy
-7. Each instruction must achieve the same technical outcome as its reference
-` : `
-You need to generate step by step instructions for the task.
-These instructions will be used to automate user interface.
-You need to generate list of instructions.
-While generate instructions, you need to split them by line breaking.
-And each instruction should be a small piece of the thing you need to do at specific step.
-Make it clear and detailed so I can easily follow the instructions.`}
-
-Do not generate any other system prompt or guidelines.
-Only generate instructions.
-Do not include anything such as Step 1:, etc.
-Only generate instructions.`;
   }
 }

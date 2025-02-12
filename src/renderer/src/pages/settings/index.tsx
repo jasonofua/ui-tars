@@ -183,6 +183,39 @@ const Settings = () => {
     }
   };
 
+  const handleUpdateRecord = async (values: any) => {
+    try {
+      const record: PineconeRecord = {
+        id: values.recordId,
+        metadata: {
+          name: values.recordName,
+          description: values.recordDescription,
+          instructions: values.recordInstructions.split('\n').filter((line: string) => line.trim()),
+          tags: values.recordTags.split(',').map((tag: string) => tag.trim()),
+        }
+      };
+
+      dispatch({
+        type: 'UPDATE_PINECONE_RECORD',
+        payload: record,
+      });
+
+      toast({
+        title: 'Record updated successfully',
+        status: 'success',
+        duration: 2000,
+      });
+    } catch (error) {
+      const errorMessage = toErrorWithMessage(error).message;
+      toast({
+        title: 'Error updating record',
+        description: errorMessage,
+        status: 'error',
+        duration: 3000,
+      });
+    }
+  };
+
   console.log('initialValues', settings);
 
   return (
@@ -212,6 +245,7 @@ const Settings = () => {
           <Tab>General</Tab>
           <Tab>Pinecone Config</Tab>
           <Tab>Add Record</Tab>
+          <Tab>Update Record</Tab>
         </TabList>
 
         <TabPanels
@@ -531,6 +565,129 @@ const Settings = () => {
                             variant="tars-ghost"
                           >
                             Add Record
+                          </Button>
+                        </HStack>
+                      </VStack>
+                    </Form>
+                  )}
+                </Formik>
+              </Box>
+            </VStack>
+          </TabPanel>
+
+          <TabPanel>
+            <VStack spacing={8} align="stretch">
+              <Box>
+                <Text fontSize="lg" fontWeight="medium" mb={4}>
+                  Update Existing Record
+                </Text>
+                <Formik
+                  initialValues={{
+                    recordId: '',
+                    recordName: '',
+                    recordDescription: '',
+                    recordTags: '',
+                    recordInstructions: '',
+                  }}
+                  onSubmit={handleUpdateRecord}
+                >
+                  {({ values, setFieldValue }) => (
+                    <Form>
+                      <VStack spacing={4} align="stretch">
+                        <FormControl>
+                          <FormLabel>Record ID</FormLabel>
+                          <Field
+                            as={Input}
+                            name="recordId"
+                            placeholder="Enter existing record ID"
+                          />
+                        </FormControl>
+
+                        <Button
+                          onClick={async () => {
+                            try {
+                              console.log('Fetching record for ID:', values.recordId);
+                              const response = await dispatch({
+                                type: 'GET_PINECONE_RECORD',
+                                payload: values.recordId
+                              }) as PineconeRecord | null;
+
+                              console.log('Got response:', response);
+
+                              if (response && typeof response === 'object' && 'metadata' in response) {
+                                console.log('Setting form values with metadata:', response.metadata);
+                                setFieldValue('recordName', response.metadata.name);
+                                setFieldValue('recordDescription', response.metadata.description);
+                                setFieldValue('recordTags', response.metadata.tags.join(', '));
+                                setFieldValue('recordInstructions', response.metadata.instructions.join('\n'));
+                              } else {
+                                console.log('Response was null or missing metadata');
+                                toast({
+                                  title: 'Record not found',
+                                  description: 'No record found with this ID',
+                                  status: 'error',
+                                  duration: 3000,
+                                });
+                              }
+                            } catch (error) {
+                              const errorMessage = toErrorWithMessage(error).message;
+                              console.error('Error fetching record:', error);
+                              toast({
+                                title: 'Error fetching record',
+                                description: errorMessage,
+                                status: 'error',
+                                duration: 3000,
+                              });
+                            }
+                          }}
+                        >
+                          Fetch Record
+                        </Button>
+
+                        <FormControl>
+                          <FormLabel>Name</FormLabel>
+                          <Field
+                            as={Input}
+                            name="recordName"
+                            placeholder="e.g., Create Phantom Wallet"
+                          />
+                        </FormControl>
+
+                        <FormControl>
+                          <FormLabel>Description</FormLabel>
+                          <Field
+                            as={Input}
+                            name="recordDescription"
+                            placeholder="Brief description of the record"
+                          />
+                        </FormControl>
+
+                        <FormControl>
+                          <FormLabel>Tags (comma-separated)</FormLabel>
+                          <Field
+                            as={Input}
+                            name="recordTags"
+                            placeholder="e.g., wallet, phantom, crypto, setup"
+                          />
+                        </FormControl>
+
+                        <FormControl>
+                          <FormLabel>Instructions (one per line)</FormLabel>
+                          <Field
+                            as={Textarea}
+                            name="recordInstructions"
+                            placeholder="Enter instructions, one per line"
+                            minHeight="200px"
+                          />
+                        </FormControl>
+
+                        <HStack spacing={4}>
+                          <Button
+                            type="submit"
+                            rounded="base"
+                            variant="tars-ghost"
+                          >
+                            Update Record
                           </Button>
                         </HStack>
                       </VStack>

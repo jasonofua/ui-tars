@@ -112,4 +112,57 @@ export class PineconeService {
             throw error;
         }
     }
+
+    async updateRecord(record: PineconeRecord): Promise<void> {
+        if (!this.client || !this.config || !this.index) {
+            throw new Error('Pinecone client not initialized');
+        }
+
+        try {
+            const textToEmbed = `${record.metadata.name} ${record.metadata.description} ${record.metadata.instructions.join(' ')}`;
+            const vector = await this.generateEmbedding(textToEmbed);
+
+            const vectorRecord = {
+                id: record.id,
+                values: vector,
+                metadata: record.metadata
+            };
+
+            // Pinecone upsert will update if ID exists
+            await this.index.upsert([vectorRecord]);
+            logger.info(`Successfully updated record ${record.id} in Pinecone`);
+        } catch (error) {
+            logger.error('Failed to update record in Pinecone:', error);
+            throw error;
+        }
+    }
+
+    async getRecord(id: string): Promise<PineconeRecord | null> {
+        if (!this.client || !this.config || !this.index) {
+            throw new Error('Pinecone client not initialized');
+        }
+
+        try {
+            logger.info(`Fetching record with ID: ${id}`);
+            const response = await this.index.fetch([id]);
+
+            logger.info('Pinecone fetch response:', response);
+
+            if (!response.records || !response.records[id]) {
+                logger.info(`No record found with ID: ${id}`);
+                return null;
+            }
+
+            const record = response.records[id];
+            logger.info(`Found record: ${JSON.stringify(record.metadata)}`);
+
+            return {
+                id,
+                metadata: record.metadata
+            };
+        } catch (error) {
+            logger.error('Failed to get record from Pinecone:', error);
+            throw error;
+        }
+    }
 } 
