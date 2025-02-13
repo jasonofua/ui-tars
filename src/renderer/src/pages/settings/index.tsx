@@ -24,7 +24,7 @@ import {
   Divider,
 } from '@chakra-ui/react';
 import { Field, Form, Formik } from 'formik';
-import { useLayoutEffect } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { useDispatch } from 'zutron';
 
 import { VlmProvider } from '@main/store/types';
@@ -66,10 +66,29 @@ interface PineconeRecord {
   };
 }
 
+interface PineconeResponse {
+  id: string;
+  metadata: {
+    name: string;
+    description: string;
+    instructions: string[];
+    tags: string[];
+  };
+}
+
+interface DispatchResult {
+  payload: PineconeResponse | null;
+}
+
+interface ZutronDispatch {
+  (action: { type: string; payload: any }): Promise<DispatchResult>;
+}
+
 const Settings = () => {
   const { settings, thinking } = useStore();
   const toast = useToast();
-  const dispatch = useDispatch(window.zutron);
+  const dispatch = useDispatch(window.zutron) as ZutronDispatch;
+  const [isFetching, setIsFetching] = useState(false);
 
   useLayoutEffect(() => {
     console.log('get_settings');
@@ -244,8 +263,8 @@ const Settings = () => {
         <TabList>
           <Tab>General</Tab>
           <Tab>Pinecone Config</Tab>
-          <Tab>Add Record</Tab>
-          <Tab>Update Record</Tab>
+          <Tab>Add </Tab>
+          <Tab>Update/Delete</Tab>
         </TabList>
 
         <TabPanels
@@ -579,7 +598,7 @@ const Settings = () => {
             <VStack spacing={8} align="stretch">
               <Box>
                 <Text fontSize="lg" fontWeight="medium" mb={4}>
-                  Update Existing Record
+                  Update or Delete Record
                 </Text>
                 <Formik
                   initialValues={{
@@ -603,46 +622,141 @@ const Settings = () => {
                           />
                         </FormControl>
 
-                        <Button
-                          onClick={async () => {
-                            try {
-                              console.log('Fetching record for ID:', values.recordId);
-                              const response = await dispatch({
-                                type: 'GET_PINECONE_RECORD',
-                                payload: values.recordId
-                              }) as PineconeRecord | null;
-
-                              console.log('Got response:', response);
-
-                              if (response && typeof response === 'object' && 'metadata' in response) {
-                                console.log('Setting form values with metadata:', response.metadata);
-                                setFieldValue('recordName', response.metadata.name);
-                                setFieldValue('recordDescription', response.metadata.description);
-                                setFieldValue('recordTags', response.metadata.tags.join(', '));
-                                setFieldValue('recordInstructions', response.metadata.instructions.join('\n'));
-                              } else {
-                                console.log('Response was null or missing metadata');
+                        <HStack spacing={4}>
+                          <Button
+                            isLoading={isFetching}
+                            onClick={async () => {
+                              if (!values.recordId) {
                                 toast({
-                                  title: 'Record not found',
-                                  description: 'No record found with this ID',
+                                  title: 'Error',
+                                  description: 'Please enter a record ID',
                                   status: 'error',
                                   duration: 3000,
                                 });
+                                return;
                               }
-                            } catch (error) {
-                              const errorMessage = toErrorWithMessage(error).message;
-                              console.error('Error fetching record:', error);
-                              toast({
-                                title: 'Error fetching record',
-                                description: errorMessage,
-                                status: 'error',
-                                duration: 3000,
-                              });
-                            }
-                          }}
-                        >
-                          Fetch Record
-                        </Button>
+
+                              try {
+                                setIsFetching(true);
+                                console.log('Starting fetch for ID:', values.recordId);
+
+                                // Show loading toast
+                                const loadingToastId = toast({
+                                  title: 'Fetching Record',
+                                  description: 'Please wait while we retrieve the record...',
+                                  status: 'info',
+                                  duration: null,
+                                  isClosable: true,
+                                });
+
+                                // First get the result
+                                const result = await dispatch({
+                                  type: 'GET_PINECONE_RECORD',
+                                  payload: values.recordId
+                                });
+
+                                console.log('Initial dispatch result:', result);
+
+                                // Check if we have a valid result
+                                if (!result) {
+                                    throw new Error('No response from server');
+                                }
+
+                                // Check if we have a valid payload
+                                if (!result.payload) {
+                                    throw new Error('Record not found in database');
+                                }
+
+                                // Type assertion for TypeScript
+                                const record = result.payload as PineconeRecord;
+                                console.log('Processing record:', record);
+
+                                // Validate record structure
+                                if (!record.metadata || !record.metadata.name) {
+                                    throw new Error('Invalid record structure received');
+                                }
+
+                                // Update form
+                                setFieldValue('recordName', record.metadata.name);
+                                setFieldValue('recordDescription', record.metadata.description);
+                                setFieldValue('recordTags', record.metadata.tags.join(', '));
+                                setFieldValue('recordInstructions', record.metadata.instructions.join('\n'));
+
+                                // Show success
+                                toast({
+                                  title: 'Record Found',
+                                  description: 'Form has been updated with the record data',
+                                  status: 'success',
+                                  duration: 3000,
+                                });
+
+                              } catch (error) {
+                                const errorMessage = toErrorWithMessage(error).message;
+                                console.error('Error details:', error);
+                                toast({
+                                  title: 'Error',
+                                  description: errorMessage,
+                                  status: 'error',
+                                  duration: 3000,
+                                });
+                              } finally {
+                                setIsFetching(false);
+                              }
+                            }}
+                          >
+                            Fetch Record
+                          </Button>
+
+                          <Button
+                            colorScheme="red"
+                            onClick={async () => {
+                              if (!values.recordId) {
+                                toast({
+                                  title: 'Error',
+                                  description: 'Please enter a record ID',
+                                  status: 'error',
+                                  duration: 3000,
+                                });
+                                return;
+                              }
+
+                              try {
+                                setIsFetching(true);
+                                console.log('Deleting record:', values.recordId);
+
+                                const result = await dispatch({
+                                  type: 'DELETE_PINECONE_RECORD',
+                                  payload: values.recordId
+                                });
+
+                                toast({
+                                  title: 'Record deleted',
+                                  description: `Successfully deleted record: ${values.recordId}`,
+                                  status: 'success',
+                                  duration: 3000,
+                                });
+
+                                setFieldValue('recordId', '');
+                                setFieldValue('recordName', '');
+                                setFieldValue('recordDescription', '');
+                                setFieldValue('recordTags', '');
+                                setFieldValue('recordInstructions', '');
+                              } catch (error) {
+                                const errorMessage = toErrorWithMessage(error).message;
+                                toast({
+                                  title: 'Error deleting record',
+                                  description: errorMessage,
+                                  status: 'error',
+                                  duration: 3000,
+                                });
+                              } finally {
+                                setIsFetching(false);
+                              }
+                            }}
+                          >
+                            Delete Record
+                          </Button>
+                        </HStack>
 
                         <FormControl>
                           <FormLabel>Name</FormLabel>

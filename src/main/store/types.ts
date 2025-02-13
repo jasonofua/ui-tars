@@ -21,6 +21,10 @@ export type NextAction =
   | { type: 'finish' }
   | { type: 'error'; message: string };
 
+export interface DispatchResult {
+  payload: PineconeRecord | null;
+}
+
 export type AppState = {
   theme: 'dark' | 'light';
   ensurePermissions: {
@@ -51,7 +55,8 @@ export type AppState = {
   CLEAR_HISTORY: () => void;
   ADD_PINECONE_RECORD: (record: PineconeRecord) => void;
   UPDATE_PINECONE_RECORD: (record: PineconeRecord) => void;
-  GET_PINECONE_RECORD: (id: string) => Promise<PineconeRecord | null>;
+  GET_PINECONE_RECORD: (id: string) => Promise<DispatchResult>;
+  DELETE_PINECONE_RECORD: (id: string) => Promise<boolean>;
 };
 
 export enum VlmProvider {

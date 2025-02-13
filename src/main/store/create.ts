@@ -19,7 +19,7 @@ import {
 import { closeScreenMarker } from './ScreenMarker';
 import { runAgent } from './runAgent';
 import { SettingStore } from './setting';
-import { AppState } from './types';
+import { AppState, DispatchResult } from './types';
 import { PineconeService } from './pinecone.service';
 import { logger } from '@main/logger';
 
@@ -151,7 +151,7 @@ export const store = createStore<AppState>(
           throw error;
         }
       },
-      GET_PINECONE_RECORD: async (id) => {
+      GET_PINECONE_RECORD: async (id: string): Promise<DispatchResult> => {
         try {
           const settings = SettingStore.getStore();
           if (!settings.pineconeApiKey || !settings.pineconeEnvironment || !settings.pineconeIndex) {
@@ -165,10 +165,56 @@ export const store = createStore<AppState>(
             indexName: settings.pineconeIndex,
           });
 
+          logger.info('Getting record from Pinecone:', id);
           const record = await pineconeService.getRecord(id);
-          return record;
+          logger.info('Got record from store:', JSON.stringify(record, null, 2));
+
+          // Return null if no record found
+          if (!record) {
+            logger.info('No record found, returning null payload');
+            return { payload: null };
+          }
+
+          // Create a clean record object
+          const cleanRecord = {
+            id: record.id,
+            metadata: {
+              name: record.metadata.name,
+              description: record.metadata.description,
+              instructions: record.metadata.instructions,
+              tags: record.metadata.tags
+            }
+          };
+
+          logger.info('Returning clean record to renderer:', JSON.stringify(cleanRecord, null, 2));
+          return { payload: cleanRecord };
+
         } catch (error) {
           logger.error('Failed to get record from Pinecone:', error);
+          throw error;
+        }
+      },
+      DELETE_PINECONE_RECORD: async (id: string): Promise<boolean> => {
+        try {
+          const settings = SettingStore.getStore();
+          if (!settings.pineconeApiKey || !settings.pineconeEnvironment || !settings.pineconeIndex) {
+            throw new Error('Pinecone configuration is incomplete');
+          }
+
+          const pineconeService = PineconeService.getInstance();
+          await pineconeService.initialize({
+            apiKey: settings.pineconeApiKey,
+            environment: settings.pineconeEnvironment,
+            indexName: settings.pineconeIndex,
+          });
+
+          logger.info('Deleting record from Pinecone:', id);
+          await pineconeService.deleteRecord(id);
+          logger.info('Successfully deleted record:', id);
+
+          return true;
+        } catch (error) {
+          logger.error('Failed to delete record from Pinecone:', error);
           throw error;
         }
       },

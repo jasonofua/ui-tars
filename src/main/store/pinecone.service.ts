@@ -138,28 +138,41 @@ export class PineconeService {
     }
 
     async getRecord(id: string): Promise<PineconeRecord | null> {
-        if (!this.client || !this.config || !this.index) {
-            throw new Error('Pinecone client not initialized');
-        }
-
         try {
-            logger.info(`Fetching record with ID: ${id}`);
-            const response = await this.index.fetch([id]);
+            if (!this.client || !this.config || !this.index) {
+                throw new Error('Pinecone client not initialized');
+            }
 
-            logger.info('Pinecone fetch response:', response);
+            const response = await this.index.fetch([id]);
+            logger.info('Raw Pinecone response:', JSON.stringify(response, null, 2));
 
             if (!response.records || !response.records[id]) {
-                logger.info(`No record found with ID: ${id}`);
+                logger.info('No record found for ID:', id);
                 return null;
             }
 
             const record = response.records[id];
-            logger.info(`Found record: ${JSON.stringify(record.metadata)}`);
+            logger.info('Raw record from Pinecone:', JSON.stringify(record, null, 2));
 
-            return {
-                id,
-                metadata: record.metadata
+            // Validate record structure
+            if (!record.metadata || !record.metadata.name) {
+                logger.error('Invalid record structure:', record);
+                return null;
+            }
+
+            // Create a clean record
+            const foundRecord: PineconeRecord = {
+                id: record.id,
+                metadata: {
+                    name: record.metadata.name,
+                    description: record.metadata.description,
+                    instructions: record.metadata.instructions,
+                    tags: record.metadata.tags
+                }
             };
+
+            logger.info('Formatted record:', JSON.stringify(foundRecord, null, 2));
+            return foundRecord;
         } catch (error) {
             logger.error('Failed to get record from Pinecone:', error);
             throw error;

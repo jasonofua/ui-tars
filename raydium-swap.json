@@ -1,0 +1,33 @@
+{
+    "id": "raydium-swap-guide",
+    "name": "Swap SOL to WIF on Raydium",
+    "description": "Detailed instructions for swapping SOL to WIF tokens using Raydium DEX on Solana",
+    "tags": [
+        "defi",
+        "raydium",
+        "solana",
+        "swap",
+        "trading",
+        "wif",
+        "dogwifhat"
+    ],
+    "instructions": [
+        "Open chrome browser",
+        "Go to https://raydium.io/",
+        "Click blue 'Connect Wallet' button on the right side of the page",
+        "Select 'Phantom' from the wallet list",
+        "Approve the connection in Phantom wallet popup",
+        "In the swap panel, locate the token dropdown button displaying 'USDC' with its logo",
+        "Click the USDC dropdown button above the Swap button",
+        "In the 'Select a token' modal, click the search bar that says 'search by token or paste address'",
+        "Type EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm in the search field",
+        "Click the $WIF (dogwifhat) token that appears in the center of the modal",
+        "In the 'From' section, locate the input field next to the SOL dropdown button",
+        "Click the input field and type 0.05 (or click 'MAX' or '50%' tag in the top right corner)",
+        "Click the blue 'Swap' button at the bottom of the swap panel",
+        "Review the transaction details in the confirmation modal",
+        "Click 'Confirm' to proceed",
+        "Approve the transaction in Phantom wallet popup",
+        "Wait for transaction confirmation"
+    ]
+}
