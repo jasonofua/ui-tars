@@ -38,6 +38,8 @@ export const store = createStore<AppState>(
       abortController: null,
       thinking: false,
 
+      currentRecord: null,
+
       // dispatch for renderer
       OPEN_SETTINGS_WINDOW: () => {
         createSettingsWindow();
@@ -145,6 +147,7 @@ export const store = createStore<AppState>(
           });
 
           await pineconeService.updateRecord(record);
+          set({ currentRecord: null });
           return true;
         } catch (error) {
           logger.error('Failed to update record in Pinecone:', error);
@@ -165,30 +168,14 @@ export const store = createStore<AppState>(
             indexName: settings.pineconeIndex,
           });
 
-          logger.info('Getting record from Pinecone:', id);
           const record = await pineconeService.getRecord(id);
-          logger.info('Got record from store:', JSON.stringify(record, null, 2));
 
-          // Return null if no record found
-          if (!record) {
-            logger.info('No record found, returning null payload');
-            return { payload: null };
+          if (record) {
+            set({ currentRecord: record });
+            logger.info('Saved record to store:', record);
           }
 
-          // Create a clean record object
-          const cleanRecord = {
-            id: record.id,
-            metadata: {
-              name: record.metadata.name,
-              description: record.metadata.description,
-              instructions: record.metadata.instructions,
-              tags: record.metadata.tags
-            }
-          };
-
-          logger.info('Returning clean record to renderer:', JSON.stringify(cleanRecord, null, 2));
-          return { payload: cleanRecord };
-
+          return { payload: record };
         } catch (error) {
           logger.error('Failed to get record from Pinecone:', error);
           throw error;
@@ -212,6 +199,7 @@ export const store = createStore<AppState>(
           await pineconeService.deleteRecord(id);
           logger.info('Successfully deleted record:', id);
 
+          set({ currentRecord: null });
           return true;
         } catch (error) {
           logger.error('Failed to delete record from Pinecone:', error);

@@ -24,7 +24,7 @@ import {
   Divider,
 } from '@chakra-ui/react';
 import { Field, Form, Formik } from 'formik';
-import { useLayoutEffect, useState } from 'react';
+import { useLayoutEffect, useState, useEffect } from 'react';
 import { useDispatch } from 'zutron';
 
 import { VlmProvider } from '@main/store/types';
@@ -85,7 +85,7 @@ interface ZutronDispatch {
 }
 
 const Settings = () => {
-  const { settings, thinking } = useStore();
+  const { settings, thinking, currentRecord } = useStore();
   const toast = useToast();
   const dispatch = useDispatch(window.zutron) as ZutronDispatch;
   const [isFetching, setIsFetching] = useState(false);
@@ -610,203 +610,191 @@ const Settings = () => {
                   }}
                   onSubmit={handleUpdateRecord}
                 >
-                  {({ values, setFieldValue }) => (
-                    <Form>
-                      <VStack spacing={4} align="stretch">
-                        <FormControl>
-                          <FormLabel>Record ID</FormLabel>
-                          <Field
-                            as={Input}
-                            name="recordId"
-                            placeholder="Enter existing record ID"
-                          />
-                        </FormControl>
+                  {({ values, setFieldValue }) => {
+                    useEffect(() => {
+                      if (currentRecord) {
+                        console.log('Current record updated:', currentRecord);
+                        // Update form fields
+                        setFieldValue('recordName', currentRecord.metadata.name || '');
+                        setFieldValue('recordDescription', currentRecord.metadata.description || '');
+                        setFieldValue('recordTags', Array.isArray(currentRecord.metadata.tags) ? currentRecord.metadata.tags.join(', ') : '');
+                        setFieldValue('recordInstructions', Array.isArray(currentRecord.metadata.instructions) ? currentRecord.metadata.instructions.join('\n') : '');
 
-                        <HStack spacing={4}>
-                          <Button
-                            isLoading={isFetching}
-                            onClick={async () => {
-                              if (!values.recordId) {
-                                toast({
-                                  title: 'Error',
-                                  description: 'Please enter a record ID',
-                                  status: 'error',
-                                  duration: 3000,
-                                });
-                                return;
-                              }
+                        toast({
+                          title: 'Record Found',
+                          description: 'Form has been updated with the record data',
+                          status: 'success',
+                          duration: 3000,
+                        });
+                      }
+                    }, [currentRecord, setFieldValue]);
 
-                              try {
-                                setIsFetching(true);
-                                console.log('Starting fetch for ID:', values.recordId);
+                    return (
+                      <Form>
+                        <VStack spacing={4} align="stretch">
+                          <FormControl>
+                            <FormLabel>Record ID</FormLabel>
+                            <Field
+                              as={Input}
+                              name="recordId"
+                              placeholder="Enter existing record ID"
+                            />
+                          </FormControl>
 
-                                // Show loading toast
-                                const loadingToastId = toast({
-                                  title: 'Fetching Record',
-                                  description: 'Please wait while we retrieve the record...',
-                                  status: 'info',
-                                  duration: null,
-                                  isClosable: true,
-                                });
-
-                                // First get the result
-                                const result = await dispatch({
-                                  type: 'GET_PINECONE_RECORD',
-                                  payload: values.recordId
-                                });
-
-                                console.log('Initial dispatch result:', result);
-
-                                // Check if we have a valid result
-                                if (!result) {
-                                    throw new Error('No response from server');
+                          <HStack spacing={4}>
+                            <Button
+                              isLoading={isFetching}
+                              onClick={async () => {
+                                if (!values.recordId) {
+                                  toast({
+                                    title: 'Error',
+                                    description: 'Please enter a record ID',
+                                    status: 'error',
+                                    duration: 3000,
+                                  });
+                                  return;
                                 }
 
-                                // Check if we have a valid payload
-                                if (!result.payload) {
-                                    throw new Error('Record not found in database');
+                                try {
+                                  setIsFetching(true);
+                                  console.log('Starting fetch for ID:', values.recordId);
+
+                                  // Show loading toast
+                                  const loadingToast = toast({
+                                    title: 'Fetching Record',
+                                    description: 'Please wait...',
+                                    status: 'info',
+                                    duration: null,
+                                    isClosable: true,
+                                  });
+
+                                  // Just dispatch and let the effect handle the response
+                                  await dispatch({
+                                    type: 'GET_PINECONE_RECORD',
+                                    payload: values.recordId
+                                  });
+
+                                  // Close loading toast
+                                  toast.close(loadingToast);
+
+                                } catch (error) {
+                                  const errorMessage = toErrorWithMessage(error).message;
+                                  console.error('Error details:', error);
+                                  toast({
+                                    title: 'Error',
+                                    description: errorMessage,
+                                    status: 'error',
+                                    duration: 3000,
+                                  });
+                                } finally {
+                                  setIsFetching(false);
+                                }
+                              }}
+                            >
+                              Fetch Record
+                            </Button>
+
+                            <Button
+                              colorScheme="red"
+                              onClick={async () => {
+                                if (!values.recordId) {
+                                  toast({
+                                    title: 'Error',
+                                    description: 'Please enter a record ID',
+                                    status: 'error',
+                                    duration: 3000,
+                                  });
+                                  return;
                                 }
 
-                                // Type assertion for TypeScript
-                                const record = result.payload as PineconeRecord;
-                                console.log('Processing record:', record);
+                                try {
+                                  setIsFetching(true);
+                                  console.log('Deleting record:', values.recordId);
 
-                                // Validate record structure
-                                if (!record.metadata || !record.metadata.name) {
-                                    throw new Error('Invalid record structure received');
+                                  const result = await dispatch({
+                                    type: 'DELETE_PINECONE_RECORD',
+                                    payload: values.recordId
+                                  });
+
+                                  toast({
+                                    title: 'Record deleted',
+                                    description: `Successfully deleted record: ${values.recordId}`,
+                                    status: 'success',
+                                    duration: 3000,
+                                  });
+
+                                  setFieldValue('recordId', '');
+                                  setFieldValue('recordName', '');
+                                  setFieldValue('recordDescription', '');
+                                  setFieldValue('recordTags', '');
+                                  setFieldValue('recordInstructions', '');
+                                } catch (error) {
+                                  const errorMessage = toErrorWithMessage(error).message;
+                                  toast({
+                                    title: 'Error deleting record',
+                                    description: errorMessage,
+                                    status: 'error',
+                                    duration: 3000,
+                                  });
+                                } finally {
+                                  setIsFetching(false);
                                 }
+                              }}
+                            >
+                              Delete Record
+                            </Button>
+                          </HStack>
 
-                                // Update form
-                                setFieldValue('recordName', record.metadata.name);
-                                setFieldValue('recordDescription', record.metadata.description);
-                                setFieldValue('recordTags', record.metadata.tags.join(', '));
-                                setFieldValue('recordInstructions', record.metadata.instructions.join('\n'));
+                          <FormControl>
+                            <FormLabel>Name</FormLabel>
+                            <Field
+                              as={Input}
+                              name="recordName"
+                              placeholder="e.g., Create Phantom Wallet"
+                            />
+                          </FormControl>
 
-                                // Show success
-                                toast({
-                                  title: 'Record Found',
-                                  description: 'Form has been updated with the record data',
-                                  status: 'success',
-                                  duration: 3000,
-                                });
+                          <FormControl>
+                            <FormLabel>Description</FormLabel>
+                            <Field
+                              as={Input}
+                              name="recordDescription"
+                              placeholder="Brief description of the record"
+                            />
+                          </FormControl>
 
-                              } catch (error) {
-                                const errorMessage = toErrorWithMessage(error).message;
-                                console.error('Error details:', error);
-                                toast({
-                                  title: 'Error',
-                                  description: errorMessage,
-                                  status: 'error',
-                                  duration: 3000,
-                                });
-                              } finally {
-                                setIsFetching(false);
-                              }
-                            }}
-                          >
-                            Fetch Record
-                          </Button>
+                          <FormControl>
+                            <FormLabel>Tags (comma-separated)</FormLabel>
+                            <Field
+                              as={Input}
+                              name="recordTags"
+                              placeholder="e.g., wallet, phantom, crypto, setup"
+                            />
+                          </FormControl>
 
-                          <Button
-                            colorScheme="red"
-                            onClick={async () => {
-                              if (!values.recordId) {
-                                toast({
-                                  title: 'Error',
-                                  description: 'Please enter a record ID',
-                                  status: 'error',
-                                  duration: 3000,
-                                });
-                                return;
-                              }
+                          <FormControl>
+                            <FormLabel>Instructions (one per line)</FormLabel>
+                            <Field
+                              as={Textarea}
+                              name="recordInstructions"
+                              placeholder="Enter instructions, one per line"
+                              minHeight="200px"
+                            />
+                          </FormControl>
 
-                              try {
-                                setIsFetching(true);
-                                console.log('Deleting record:', values.recordId);
-
-                                const result = await dispatch({
-                                  type: 'DELETE_PINECONE_RECORD',
-                                  payload: values.recordId
-                                });
-
-                                toast({
-                                  title: 'Record deleted',
-                                  description: `Successfully deleted record: ${values.recordId}`,
-                                  status: 'success',
-                                  duration: 3000,
-                                });
-
-                                setFieldValue('recordId', '');
-                                setFieldValue('recordName', '');
-                                setFieldValue('recordDescription', '');
-                                setFieldValue('recordTags', '');
-                                setFieldValue('recordInstructions', '');
-                              } catch (error) {
-                                const errorMessage = toErrorWithMessage(error).message;
-                                toast({
-                                  title: 'Error deleting record',
-                                  description: errorMessage,
-                                  status: 'error',
-                                  duration: 3000,
-                                });
-                              } finally {
-                                setIsFetching(false);
-                              }
-                            }}
-                          >
-                            Delete Record
-                          </Button>
-                        </HStack>
-
-                        <FormControl>
-                          <FormLabel>Name</FormLabel>
-                          <Field
-                            as={Input}
-                            name="recordName"
-                            placeholder="e.g., Create Phantom Wallet"
-                          />
-                        </FormControl>
-
-                        <FormControl>
-                          <FormLabel>Description</FormLabel>
-                          <Field
-                            as={Input}
-                            name="recordDescription"
-                            placeholder="Brief description of the record"
-                          />
-                        </FormControl>
-
-                        <FormControl>
-                          <FormLabel>Tags (comma-separated)</FormLabel>
-                          <Field
-                            as={Input}
-                            name="recordTags"
-                            placeholder="e.g., wallet, phantom, crypto, setup"
-                          />
-                        </FormControl>
-
-                        <FormControl>
-                          <FormLabel>Instructions (one per line)</FormLabel>
-                          <Field
-                            as={Textarea}
-                            name="recordInstructions"
-                            placeholder="Enter instructions, one per line"
-                            minHeight="200px"
-                          />
-                        </FormControl>
-
-                        <HStack spacing={4}>
-                          <Button
-                            type="submit"
-                            rounded="base"
-                            variant="tars-ghost"
-                          >
-                            Update Record
-                          </Button>
-                        </HStack>
-                      </VStack>
-                    </Form>
-                  )}
+                          <HStack spacing={4}>
+                            <Button
+                              type="submit"
+                              rounded="base"
+                              variant="tars-ghost"
+                            >
+                              Update Record
+                            </Button>
+                          </HStack>
+                        </VStack>
+                      </Form>
+                    );
+                  }}
                 </Formik>
               </Box>
             </VStack>

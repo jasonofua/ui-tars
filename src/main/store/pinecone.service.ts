@@ -144,7 +144,7 @@ export class PineconeService {
             }
 
             const response = await this.index.fetch([id]);
-            logger.info('Raw Pinecone response:', JSON.stringify(response, null, 2));
+           
 
             if (!response.records || !response.records[id]) {
                 logger.info('No record found for ID:', id);
@@ -152,7 +152,6 @@ export class PineconeService {
             }
 
             const record = response.records[id];
-            logger.info('Raw record from Pinecone:', JSON.stringify(record, null, 2));
 
             // Validate record structure
             if (!record.metadata || !record.metadata.name) {

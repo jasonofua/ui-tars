@@ -39,6 +39,7 @@ export type AppState = {
   getSetting: typeof SettingStore.get;
   abortController: AbortController | null;
   thinking: boolean;
+  currentRecord: PineconeRecord | null;
 
   // === dispatch ===
   OPEN_SETTINGS_WINDOW: () => void;
