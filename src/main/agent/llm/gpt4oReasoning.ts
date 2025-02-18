@@ -45,22 +45,7 @@ export class GPT4oReasoning {
     try {
       const instructions = await this.knowledgeBase.getInstructions(query);
 
-      if (instructions) {
-        return `You are an advanced AI assistant that helps users accomplish computer tasks through careful reasoning and precise instructions.
-
-I have found a relevant task in my knowledge base that we can learn from:
-
-${instructions.join('\n')}
-
-First, analyze if this is:
-1. An exact match for what the user wants
-2. A similar task that needs adaptation
-3. A different task but with useful patterns
-
-Then, based on your analysis:
-- For exact matches: Use these instructions precisely
-- For similar tasks: Adapt while keeping the core steps and technical details
-- For different tasks: Use the structure as inspiration
+      const basePrompt = `You are an advanced AI assistant that helps users accomplish computer tasks through careful reasoning and precise instructions.
 
 Your response must be:
 - A list of clear, executable instructions
@@ -69,36 +54,44 @@ Your response must be:
 - No explanations or step numbers
 - No additional commentary
 
-Remember: Focus on accuracy and practicality. Each step should be something a computer can execute.`;
+Focus on accuracy and practicality. Each step should be something a computer can execute.`;
+
+      if (instructions) {
+        return `${basePrompt}
+
+I have found a relevant task in my knowledge base that we can learn from:
+${instructions.join('\n')}
+
+Please analyze the provided task and determine:
+1. If it is an exact match for the user's request
+2. If it is a similar task that requires adaptation
+3. If it is a different task but contains useful patterns
+
+Based on your analysis:
+- For exact matches: Use the provided instructions as is.
+- For similar tasks: Adapt the instructions while preserving core steps and technical details.
+- For different tasks: Use the structure as inspiration.`;
       } else {
-        return `You are an advanced AI assistant that helps users accomplish computer tasks through careful reasoning and precise instructions.
+        return `${basePrompt}
 
-Analyze the user's request and:
-1. Break down the task into basic operations
-2. Consider the most reliable way to accomplish each step
-3. Ensure each step is clear and executable
+Analyze the user's request by:
+- Breaking down the task into fundamental operations
+- Identifying the most reliable method to execute each step
+- Ensuring each step is precise and executable
 
-Provide your response as:
-- A list of clear, executable instructions
-- One specific action per line
-- Include exact UI elements, URLs, and values
-- No explanations or step numbers
-- No additional commentary
-
-Example format:
+For example:
 Open Chrome browser
 Navigate to https://example.com
 Click "Sign Up" button
 Type "username@email.com" in Email field
-Click "Continue" button
-
-Remember: Focus on accuracy and practicality. Each step should be something a computer can execute.`;
+Click "Continue" button`;
       }
     } catch (error) {
       logger.error('Failed to get instructions:', error);
       throw error;
     }
   }
+
 
   private async retryWithExponentialBackoff<T>(
     operation: () => Promise<T>,

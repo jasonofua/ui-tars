@@ -1,0 +1,38 @@
+{
+    "id": "check-spain-summer-weather",
+    "name": "Check Summer Weather in Spain",
+    "description": "Step-by-step guide to check detailed summer weather information for Spain using reliable weather services",
+    "tags": [
+        "weather",
+        "spain",
+        "summer",
+        "travel",
+        "planning"
+    ],
+    "instructions": [
+        "Open Chrome browser",
+        "Press Ctrl+T (Windows) or Cmd+T (Mac) to open a new tab",
+        "Click on the address bar",
+        "Type https://www.accuweather.com and press Enter",
+        "Wait for the page to load completely",
+        "Click on the search bar in the top center of the page",
+        "Type 'Spain'",
+        "Wait for the dropdown results to appear",
+        "Click on 'Spain' from the dropdown results",
+        "Click on the 'Monthly' tab in the main weather display",
+        "Locate the calendar navigation at the top of the forecast",
+        "Click the right arrow to navigate to June (summer start)",
+        "Note the average temperatures and precipitation for June",
+        "Click the right arrow again for July data",
+        "Record July's average temperatures and precipitation",
+        "Click the right arrow one more time for August data",
+        "Note August's weather patterns",
+        "Click on the 'More Details' button below the monthly forecast",
+        "Scroll down to view humidity levels",
+        "Check UV index predictions",
+        "View precipitation probability",
+        "Look for the 'Historical Weather' link",
+        "Click on 'Historical Weather'",
+        "Select previous year's summer data for comparison"
+    ]
+}

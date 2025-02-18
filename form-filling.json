@@ -1,0 +1,43 @@
+{
+    "id": "generic-form-filling",
+    "name": "Complete Online Form",
+    "description": "Detailed guide for filling out a generic online form with proper validation and submission",
+    "tags": [
+        "form",
+        "data entry",
+        "submission",
+        "validation",
+        "online form"
+    ],
+    "instructions": [
+        "Open Chrome browser",
+        "Press Ctrl+T (Windows) or Cmd+T (Mac) to open a new tab",
+        "Click on the address bar",
+        "Type 'https://docs.google.com/forms/d/e/1FAIpQLSenTSf_Mcih3pMCmfrD1LZdOb0VbSg3qUlyld2F8VjCeasskA/viewform?usp=sharing' and press Enter",
+        "Wait for the form to load completely",
+        "Click on the first form field labeled 'First Name'",
+        "Type your first name in the 'First Name' field",
+        "Press Tab to move to the 'Last Name' field",
+        "Type your last name in the 'Last Name' field",
+        "Press Tab to move to the email field",
+        "Type your email address in the format 'user@domain.com'",
+        "Press Tab to move to the phone field",
+        "Enter phone number in the format 'XXX-XXX-XXXX'",
+        "Press Tab to move to the address field",
+        "Type your street address",
+        "Press Tab to move to the city field",
+        "Enter your city name",
+        "Press Tab to move to the state/province field",
+        "Select your state from the dropdown menu",
+        "Press Tab to move to the ZIP/postal code field",
+        "Enter your ZIP/postal code",
+        "Press Tab to move to any checkbox fields",
+        "Press Space to check/uncheck required boxes",
+        "Review all entered information for accuracy",
+        "Click the 'Submit' button",
+        "Wait for any validation messages",
+        "Address any errors if they appear",
+        "Confirm submission if prompted",
+        "Check for a confirmation email if specified"
+    ]
+}

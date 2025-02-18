@@ -1,0 +1,42 @@
+{
+    "id": "california-france-flight-search",
+    "name": "Find Lowest Price Flights from California to France",
+    "description": "Comprehensive guide to search and find the best flight deals from California to France using Google Flights",
+    "tags": [
+        "travel",
+        "flights",
+        "google flights",
+        "booking",
+        "international",
+        "france"
+    ],
+    "instructions": [
+        "Open Chrome browser",
+        "Navigate to https://www.google.com/flights",
+        "Click the departure airport field",
+        "Type 'California' to see major airports",
+        "Select 'SFO' or 'LAX' based on your preference",
+        "Click the destination field",
+        "Type 'France' and select 'Paris (PAR - All Airports)'",
+        "Click the departure date field",
+        "Click the calendar view button to see prices for multiple months",
+        "Scroll through the calendar to view price variations",
+        "Look for the lowest priced dates highlighted in green",
+        "Click on the best departure date",
+        "Select a return date (typically 7-14 days later)",
+        "Click 'Done' in the calendar",
+        "Click the 'Filters' button",
+        "Select 'Stops' filter and choose 'Max 1 stop' for better prices",
+        "Click 'Price' filter and set your maximum budget",
+        "Click 'Airlines' to select preferred carriers",
+        "Sort results by price (lowest first)",
+        "Click 'Track prices' button to monitor price changes",
+        "Sign in with Google account if prompted for price tracking",
+        "Review the flight options displayed",
+        "Click on the most suitable flight to see details",
+        "Check baggage allowance information",
+        "Review layover durations if applicable",
+        "Click 'Select' on your chosen flight",
+        "Choose 'Select' on the return flight"
+    ]
+}
