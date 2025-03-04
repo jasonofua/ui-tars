@@ -26,14 +26,37 @@ export default defineConfig({
       outDir: 'dist/main',
       lib: {
         entry: './src/main/main.ts',
+        formats: ['cjs']
       },
       rollupOptions: {
         external: [
           'electron',
           'source-map-support',
           'electron-store',
+          'express',
+          'cors',
           ...workspaceDeps
         ]
+      }
+    },
+    plugins: [
+      externalizeDepsPlugin({
+        exclude: [...workspaceDeps, 'electron-store', 'express', 'cors'],
+      }),
+      tsconfigPaths(),
+    ],
+    resolve: {
+      alias: {
+        '@main': resolve('src/main')
+      }
+    }
+  },
+  preload: {
+    build: {
+      outDir: 'dist/preload',
+      lib: {
+        entry: './src/preload/index.ts',
+        formats: ['cjs']
       }
     },
     plugins: [
@@ -41,21 +64,7 @@ export default defineConfig({
         exclude: [...workspaceDeps, 'electron-store'],
       }),
       tsconfigPaths(),
-    ],
-  },
-  preload: {
-    build: {
-      outDir: 'dist/preload',
-      lib: {
-        entry: './src/preload/index.ts',
-      },
-    },
-    plugins: [
-      externalizeDepsPlugin({
-        exclude: [...workspaceDeps, 'electron-store'],
-      }),
-      tsconfigPaths(),
-    ],
+    ]
   },
   renderer: {
     root: 'src/renderer',
@@ -79,5 +88,11 @@ export default defineConfig({
     define: {
       APP_VERSION: JSON.stringify(pkg.version),
     },
+    resolve: {
+      alias: {
+        '@renderer': resolve('src/renderer/src'),
+        '@ui-tars/shared': resolve('packages/shared/src')
+      }
+    }
   },
 });

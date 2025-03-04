@@ -1,12 +1,8 @@
-/**
- * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
- * SPDX-License-Identifier: Apache-2.0
- */
+
 import { electronApp, optimizer } from '@electron-toolkit/utils';
 import { app, globalShortcut, ipcMain } from 'electron';
 import squirrelStartup from 'electron-squirrel-startup';
 import ElectronStore from 'electron-store';
-// import { autoUpdater } from 'electron-updater';
 import { mainZustandBridge } from 'zutron/main';
 
 import * as env from '@main/env';
@@ -19,10 +15,10 @@ import {
 
 import { store } from './store/create';
 import { createTray } from './tray';
+import { startApiServer } from './api';
 
 const { isProd } = env;
 
-// 在应用初始化之前启用辅助功能支持
 app.commandLine.appendSwitch('force-renderer-accessibility');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -74,60 +70,78 @@ const loadDevDebugTools = async () => {
 };
 
 const initializeApp = async () => {
-  const isAccessibilityEnabled = app.isAccessibilitySupportEnabled();
-  logger.info('isAccessibilityEnabled', isAccessibilityEnabled);
-  if (env.isMacOS) {
-    app.setAccessibilitySupportEnabled(true);
-    const { ensurePermissions } = await import('@main/utils/systemPermissions');
+  try {
+    // Start API server first
+    logger.info('[Main] Starting API server...');
+    const server = await startApiServer();
+    logger.info('[Main] API Server started successfully');
 
-    const ensureScreenCapturePermission = ensurePermissions();
-    logger.info('ensureScreenCapturePermission', ensureScreenCapturePermission);
+    // Cleanup API server on quit
+    app.on('before-quit', () => {
+      logger.info('[Main] Closing API server...');
+      server.close(() => {
+        logger.info('[Main] API server closed');
+      });
+    });
+
+    const isAccessibilityEnabled = app.isAccessibilitySupportEnabled();
+    logger.info('isAccessibilityEnabled', isAccessibilityEnabled);
+    if (env.isMacOS) {
+      app.setAccessibilitySupportEnabled(true);
+      const { ensurePermissions } = await import('@main/utils/systemPermissions');
+
+      const ensureScreenCapturePermission = ensurePermissions();
+      logger.info('ensureScreenCapturePermission', ensureScreenCapturePermission);
+    }
+
+    // if (isDev) {
+    await loadDevDebugTools();
+    // }
+
+    logger.info('createTray');
+    // Tray
+    await createTray();
+
+    const launcherWindowIns = LauncherWindow.getInstance();
+
+    globalShortcut.register('Alt+T', () => {
+      launcherWindowIns.show();
+    });
+
+    logger.info('createMainWindow');
+    const mainWindow = createMainWindow();
+    const settingsWindow = createSettingsWindow({
+      showInBackground: true,
+    });
+
+    // Remove this if your app does not use auto updates
+    // eslint-disable-next-line
+    new AppUpdater();
+
+    logger.info('mainZustandBridge');
+
+    const { unsubscribe } = mainZustandBridge(
+      ipcMain,
+      store,
+      [
+        mainWindow,
+        settingsWindow,
+        ...(launcherWindowIns.getWindow()
+          ? [launcherWindowIns.getWindow()!]
+          : []),
+      ],
+      {
+        // reducer: rootReducer,
+      },
+    );
+
+    app.on('quit', unsubscribe);
+
+    logger.info('initializeApp end');
+  } catch (error) {
+    logger.error('[Main] Initialization error:', error);
+    app.quit();
   }
-
-  // if (isDev) {
-  await loadDevDebugTools();
-  // }
-
-  logger.info('createTray');
-  // Tray
-  await createTray();
-
-  const launcherWindowIns = LauncherWindow.getInstance();
-
-  globalShortcut.register('Alt+T', () => {
-    launcherWindowIns.show();
-  });
-
-  logger.info('createMainWindow');
-  const mainWindow = createMainWindow();
-  const settingsWindow = createSettingsWindow({
-    showInBackground: true,
-  });
-
-  // Remove this if your app does not use auto updates
-  // eslint-disable-next-line
-  new AppUpdater();
-
-  logger.info('mainZustandBridge');
-
-  const { unsubscribe } = mainZustandBridge(
-    ipcMain,
-    store,
-    [
-      mainWindow,
-      settingsWindow,
-      ...(launcherWindowIns.getWindow()
-        ? [launcherWindowIns.getWindow()!]
-        : []),
-    ],
-    {
-      // reducer: rootReducer,
-    },
-  );
-
-  app.on('quit', unsubscribe);
-
-  logger.info('initializeApp end');
 };
 
 /**
