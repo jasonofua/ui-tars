@@ -1,0 +1,1 @@
+export const activeScreenshotIntervals: Map<string, NodeJS.Timeout> = new Map(); 

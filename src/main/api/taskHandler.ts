@@ -4,6 +4,8 @@ import { StatusEnum, Message } from '@ui-tars/shared/types';
 import { logger } from '@main/logger';
 import { runAgent } from '@main/store/runAgent';
 import { KnowledgeBase } from '@main/store/knowledgeBase';
+import { captureScreenshot } from '@main/utils/screenshot';
+import { activeScreenshotIntervals } from '@main/store/screenshot';
 
 export interface TaskRequest {
     task: string;
@@ -12,6 +14,7 @@ export interface TaskRequest {
 export const handleTaskRequest = async (req: Request, res: Response) => {
     try {
         const { task } = req.body as TaskRequest;
+        const taskId = Date.now().toString(); // Generate unique task ID
 
         if (!task) {
             return res.status(400).json({
@@ -43,11 +46,25 @@ export const handleTaskRequest = async (req: Request, res: Response) => {
             isRunning: true
         }));
 
-        // Send immediate response since the task is queued
+        // Send immediate response with taskId
         res.status(200).json({
             status: 'accepted',
-            message: 'Task received and processing'
+            message: 'Task received and processing',
+            taskId // Include taskId in response
         });
+
+        // Start screenshot monitoring automatically
+        const screenshotInterval = 2000; // 2 seconds
+        const intervalId = setInterval(async () => {
+            try {
+                const screenshot = await captureScreenshot();
+                logger.info(`[Screenshot] Captured for task ${taskId}, size: ${screenshot.length} bytes`);
+            } catch (error) {
+                logger.error(`[Screenshot] Error capturing for task ${taskId}:`, error);
+            }
+        }, screenshotInterval);
+
+        activeScreenshotIntervals.set(taskId, intervalId);
 
         try {
             // Get instructions from knowledge base
@@ -79,6 +96,10 @@ export const handleTaskRequest = async (req: Request, res: Response) => {
                 status: StatusEnum.END
             }));
 
+            // Stop screenshot monitoring when task completes
+            clearInterval(intervalId);
+            activeScreenshotIntervals.delete(taskId);
+
         } catch (processError) {
             logger.error('[API] Error during task processing:', processError);
 
@@ -89,6 +110,10 @@ export const handleTaskRequest = async (req: Request, res: Response) => {
                 status: StatusEnum.INIT,
                 error: processError instanceof Error ? processError.message : 'Unknown error'
             }));
+
+            // Make sure to stop screenshot monitoring on error
+            clearInterval(intervalId);
+            activeScreenshotIntervals.delete(taskId);
         }
 
     } catch (error) {
