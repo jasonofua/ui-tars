@@ -1,0 +1,35 @@
+{
+    "id": "check-spain-summer-weather",
+    "metadata": {
+        "name": "Check Summer Weather in Spain",
+        "description": "Comprehensive instructions for checking Spain's summer weather across different browsers with fallback options",
+        "instructions": [
+            "Launch chrome web browser",
+            "Create new browsing session",
+            "Navigate to accuweather.com",
+            "Execute location search: 'Spain' with geolocation validation",
+            "Access historical climate data interface",
+            "Set temporal filter: June-August 2024",
+            "Extract temperature metrics (daily min/max)",
+            "Capture precipitation frequency statistics",
+            "Record humidity measurements at 3h intervals",
+            "Export structured data (JSON/CSV preferred)",
+            "If using Chrome: Utilize Chrome's built-in translation for local sources",
+            "If using Chrome: Employ Chrome DevTools for network request monitoring",
+            "If using Chrome: Use Chrome's native screenshot tool (Ctrl+Shift+I)",
+            "Verify temperature range 15°C-35°C (Sanity check)",
+            "Confirm precipitation < 90% probability (Error threshold)",
+            "Validate timestamps match summer months"
+        ],
+        "tags": [
+            "weather",
+            "spain",
+            "summer",
+            "chrome",
+            "firefox",
+            "edge",
+            "safari",
+            "cross-browser"
+        ]
+    }
+}

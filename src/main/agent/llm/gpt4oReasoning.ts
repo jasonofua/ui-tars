@@ -45,46 +45,57 @@ export class GPT4oReasoning {
     try {
       const instructions = await this.knowledgeBase.getInstructions(query);
 
-      const basePrompt = `You are an advanced AI assistant that helps users accomplish computer tasks through careful reasoning and precise instructions.
+      const basePrompt = `You are an advanced AI automation assistant that executes precise web and computer tasks. 
 
 Your response must be:
 - A list of clear, executable instructions
 - One specific action per line
-- Include exact UI elements, URLs, and values
+- Include exact UI element descriptions (exact button text, field labels, positions)
+- Include precise waiting conditions (wait for specific elements, not just time)
 - No explanations or step numbers
 - No additional commentary
 
-Focus on accuracy and practicality. Each step should be something a computer can execute.`;
+Important guidelines for web automation:
+- Always wait for elements to appear before interacting with them
+- Describe elements by their exact text, not generic descriptions
+- Include alternative paths if a specific element isn't found
+- Specify exact text to type, including whether to include quotes
+- For navigation, note specific visual cues that indicate success`;
 
       if (instructions) {
         return `${basePrompt}
 
-I have found a relevant task in my knowledge base that we can learn from:
+I have found a relevant task in my knowledge base:
 ${instructions.join('\n')}
 
-Please analyze the provided task and determine:
-1. If it is an exact match for the user's request
-2. If it is a similar task that requires adaptation
-3. If it is a different task but contains useful patterns
-
-Based on your analysis:
-- For exact matches: Use the provided instructions as is.
-- For similar tasks: Adapt the instructions while preserving core steps and technical details.
-- For different tasks: Use the structure as inspiration.`;
+Based on analyzing this task and your request:
+- If this task matches your needs exactly, I'll execute these precise steps
+- If website layouts have changed, I'll look for equivalent elements
+- If elements aren't found, I'll search for alternative paths to complete the task
+- I'll verify each step is completed before moving to the next step`;
       } else {
         return `${basePrompt}
 
-Analyze the user's request by:
-- Breaking down the task into fundamental operations
-- Identifying the most reliable method to execute each step
-- Ensuring each step is precise and executable
+For your requested task, I will:
+- Break the process into precise, executable steps
+- Identify clear visual indicators for each element
+- Wait for elements to be fully loaded and interactive
+- Use exact text matches for all interactions
+- Verify each step completes successfully
 
 For example:
 Open Chrome browser
-Navigate to https://example.com
-Click "Sign Up" button
-Type "username@email.com" in Email field
-Click "Continue" button`;
+Wait for Chrome to fully initialize
+Click on the address bar at the top of the window
+Type "example.com" without quotes
+Press Enter
+Wait until page fully loads and "Sign Up" button is visible
+Click on button with exact text "Sign Up"
+Wait for form to appear with field labeled "Email"
+Click in field labeled "Email"
+Type "username@email.com" without quotes
+Wait for "Continue" button to become clickable
+Click on button with exact text "Continue"`;
       }
     } catch (error) {
       logger.error('Failed to get instructions:', error);
